@@ -55,13 +55,13 @@ struct rg_joint {
 	struct rg_pose_mat world_pose;
 	struct rg_pose_srt local_pose;
 
-	uint8_t  parent;
+	uint16_t  parent;
 
-	uint8_t  children_count;
-	uint8_t  children[1];
+	uint16_t  children_count;
+	uint16_t  children[1];
 };
 
-#define SIZEOF_RG_JOINT (sizeof(struct rg_joint) - sizeof(uint8_t) + PTR_SIZE_DIFF)
+#define SIZEOF_RG_JOINT (sizeof(struct rg_joint) - sizeof(uint16_t) + PTR_SIZE_DIFF)
 
 void rg_joint_update(struct rg_joint*, struct rg_skeleton*);
 
