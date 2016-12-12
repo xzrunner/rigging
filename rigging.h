@@ -11,6 +11,8 @@ extern "C"
 #define PTR_SIZE_DIFF (8 - sizeof(void *))
 #define SIZEOF_POINTER 8
 
+#define RG_JOINT_UNKNOWN 0xffff
+
 #define RG_SKIN_UNKNOWN 0xffff
 #define RG_SKIN_NULL    0xfffe
 
@@ -55,10 +57,10 @@ struct rg_joint {
 	struct rg_pose_mat world_pose;
 	struct rg_pose_srt local_pose;
 
-	uint16_t  parent;
+	uint16_t parent;
 
-	uint16_t  children_count;
-	uint16_t  children[1];
+	uint16_t children_count;
+	uint16_t children[1];
 };
 
 #define SIZEOF_RG_JOINT (sizeof(struct rg_joint) - sizeof(uint16_t) + PTR_SIZE_DIFF)
@@ -194,10 +196,10 @@ struct rg_joint_sample {
 };
 
 struct rg_tl_joint_state {
-	float    trans[2];
-	float    rot;
-	float    scale[2];
-	float    shear[2];
+	float trans[2];
+	float rot;
+	float scale[2];
+	float shear[2];
 };
 
 struct rg_tl_joint {

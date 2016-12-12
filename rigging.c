@@ -92,7 +92,7 @@ rg_local2worldmat(const struct rg_pose_mat* src, const struct rg_pose_srt* local
 
 void 
 rg_joint_update(struct rg_joint* joint, struct rg_skeleton* sk) {
-	if (joint->parent != 0xff) {
+	if (joint->parent != RG_JOINT_UNKNOWN) {
 		assert(joint->parent < sk->joint_count);
 		struct rg_joint* parent = sk->joints[joint->parent];
 		rg_local2worldmat(&parent->world_pose, &joint->local_pose, &joint->world_pose);
@@ -112,7 +112,7 @@ static void
 _update_joint(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, int joint_idx) {
 	assert(joint_idx >= 0 && joint_idx < sk->joint_count);
 	struct rg_joint* joint = sk->joints[joint_idx];
-	if (joint->parent != 0xff) {
+	if (joint->parent != RG_JOINT_UNKNOWN) {
 		assert(joint->parent < sk->joint_count);
 		rg_local2worldmat(&pose->poses[joint->parent].world, &pose->poses[joint_idx].local, &pose->poses[joint_idx].world);
 	}
