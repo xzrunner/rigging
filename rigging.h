@@ -205,7 +205,6 @@ struct rg_tl_joint_state {
 struct rg_tl_joint {
 	uint8_t	               type;
 	uint8_t                dims_count[DIM_COUNT];
-	uint8_t                padding[3];
 	struct rg_joint_sample samples[1];
 };
 
