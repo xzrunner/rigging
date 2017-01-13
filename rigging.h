@@ -195,6 +195,8 @@ struct rg_joint_sample {
 	float	 data;
 };
 
+#define SIZEOF_RG_JOINT_SAMPLE (sizeof(struct rg_joint_sample))
+
 struct rg_tl_joint_state {
 	float trans[2];
 	float rot;
@@ -214,6 +216,8 @@ struct rg_skin_sample {
 	uint16_t time;
 	uint16_t skin;
 };
+
+#define SIZEOF_RG_SKIN_SAMPLE (sizeof(struct rg_skin_sample))
 
 struct rg_tl_skin {
 	uint8_t               skin_count;
