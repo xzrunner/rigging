@@ -178,7 +178,8 @@ rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* s
 			void* sym = sk->skins[skin].ud;
 			UPDATE_SKIN_FUNC(sym, sk_pose);
 
-			if (sk->skins[skin].type == SKIN_MESH && td[skin]) {
+			int type = sk->skins[skin].type;
+			if ((type == SKIN_MESH || type == SKIN_JOINT_MESH) && td[skin]) {
 				struct rg_tl_deform_state deform_state;
 				const float* vertices = rg_tl_query_deform(td[skin], time, &deform_state);
 				UPDATE_MESH_FUNC(sym, &deform_state, vertices);
