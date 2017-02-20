@@ -167,7 +167,7 @@ void
 rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose, const struct rg_tl_skin** ts, const struct rg_tl_deform** td, int time) {
 	for (int i = 0; i < sk->slot_count; ++i) {
 		uint16_t skin = RG_SKIN_UNKNOWN;
-		if (ts[i]) {
+		if (ts[i] && ts[i]->skin_count != 0) {
 			skin = rg_tl_query_skin(ts[i], time);
 		} else {
 			skin = sk->slots[i].skin;
@@ -179,7 +179,7 @@ rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* s
 			UPDATE_SKIN_FUNC(sym, sk_pose);
 
 			int type = sk->skins[skin].type;
-			if ((type == SKIN_MESH || type == SKIN_JOINT_MESH) && td[skin]) {
+			if ((type == SKIN_MESH || type == SKIN_JOINT_MESH) && td[skin] && td[skin]->count > 0) {
 				struct rg_tl_deform_state deform_state;
 				const float* vertices = rg_tl_query_deform(td[skin], time, &deform_state);
 				UPDATE_MESH_FUNC(sym, &deform_state, vertices);
