@@ -65,6 +65,8 @@ struct rg_joint {
 
 #define SIZEOF_RG_JOINT (sizeof(struct rg_joint) - sizeof(uint16_t) + PTR_SIZE_DIFF)
 
+struct rg_skeleton;
+
 void rg_joint_update(struct rg_joint*, struct rg_skeleton*);
 
 /**
@@ -114,6 +116,8 @@ struct rg_skeleton_pose {
 
 #define SIZEOF_RG_SKELETON_POSE (sizeof(struct rg_skeleton_pose) - sizeof(struct rg_pose_pair))
 
+struct rg_tl_joint;
+
 void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, const struct rg_tl_joint**, int time);
 
 /**
@@ -127,9 +131,11 @@ struct rg_skeleton_skin {
 
 #define SIZEOF_RG_SKELETON_SKIN (sizeof(struct rg_skeleton_skin) - sizeof(uint16_t))
 
+struct rg_tl_deform_state;
 void rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_skeleton_pose*),
 						   void (*update_mesh_func)(void* sym, const struct rg_tl_deform_state*, const float*));
-
+struct rg_tl_skin;
+struct rg_tl_deform;
 void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, const struct rg_tl_skin**, const struct rg_tl_deform**, int time);
 
 /**
