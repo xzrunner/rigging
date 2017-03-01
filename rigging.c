@@ -122,7 +122,7 @@ _update_joint(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, int j
 }
 
 void 
-rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, const struct rg_tl_joint** joints, int time) {
+rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, struct rg_tl_joint** joints, int time) {
 	uint64_t dims_ptr = 0;
 	for (int i = 0; i < sk->joint_count; ++i) {
 		struct rg_joint* joint = sk->joints[i];
@@ -164,7 +164,7 @@ rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_skelet
 }
 
 void 
-rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose, const struct rg_tl_skin** ts, const struct rg_tl_deform** td, int time) {
+rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose, struct rg_tl_skin** ts, struct rg_tl_deform** td, int time) {
 	for (int i = 0; i < sk->slot_count; ++i) {
 		uint16_t skin = RG_SKIN_UNKNOWN;
 		if (ts[i] && ts[i]->skin_count != 0) {

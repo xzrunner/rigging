@@ -118,7 +118,7 @@ struct rg_skeleton_pose {
 
 struct rg_tl_joint;
 
-void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, const struct rg_tl_joint**, int time);
+void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, struct rg_tl_joint**, int time);
 
 /**
  *  @brief
@@ -136,7 +136,7 @@ void rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_s
 						   void (*update_mesh_func)(void* sym, const struct rg_tl_deform_state*, const float*));
 struct rg_tl_skin;
 struct rg_tl_deform;
-void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, const struct rg_tl_skin**, const struct rg_tl_deform**, int time);
+void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, struct rg_tl_skin**, struct rg_tl_deform**, int time);
 
 /**
  *  @brief
