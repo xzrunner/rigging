@@ -52,18 +52,16 @@ void rg_local2worldmat(const struct rg_pose_mat* src, const struct rg_pose_srt* 
  */
 
 struct rg_joint {
-	const char* name;
-
 	struct rg_pose_mat world_pose;
 	struct rg_pose_srt local_pose;
 
 	uint16_t parent;
 
 	uint16_t children_count;
-	uint16_t children[1];
+	uint16_t children[2];
 };
 
-#define SIZEOF_RG_JOINT (sizeof(struct rg_joint) - sizeof(uint16_t) + PTR_SIZE_DIFF)
+#define SIZEOF_RG_JOINT  (sizeof(struct rg_joint) - sizeof(uint16_t) * 2 + PTR_SIZE_DIFF)
 
 struct rg_skeleton;
 
@@ -145,14 +143,15 @@ void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*
 
 struct rg_skeleton {
 	int joint_count;
-	struct rg_joint** joints;
-
 	int root;
 
 	int slot_count;
+	int skin_count;
+
+	struct rg_joint** joints;
+
 	struct rg_slot* slots;
 
-	int skin_count;
 	struct rg_skin skins[1];
 };
 
@@ -227,6 +226,7 @@ struct rg_skin_sample {
 
 struct rg_tl_skin {
 	uint8_t               skin_count;
+	uint8_t               padding[3];
 	struct rg_skin_sample skins[1];
 };
 
@@ -249,6 +249,7 @@ struct rg_deform_sample {
 
 struct rg_tl_deform {
 	int                     count;
+	uint32_t                padding;
 	struct rg_deform_sample samples[1];
 };
 
@@ -279,9 +280,11 @@ struct rg_animation {
 	struct rg_timeline timeline;
 
 	int max_frame;
+
+	uint32_t padding;
 };
 
-#define SIZEOF_RG_ANIM (sizeof(struct rg_animation) + PTR_SIZE_DIFF)
+#define SIZEOF_RG_ANIM (sizeof(struct rg_animation) + PTR_SIZE_DIFF * 4)
 
 #endif // rigging_h
 
