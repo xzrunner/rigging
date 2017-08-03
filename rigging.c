@@ -293,8 +293,8 @@ rg_skeleton_draw(const struct rg_skeleton* sk, const struct rg_skeleton_pose* po
 		RENDER_FUNC(skin->ud, world.m, ud);
 	}
 
-	DEBUG_DRAW_FUNC(debug0[0], debug0[1], 0xff0000ff);
-	DEBUG_DRAW_FUNC(debug1[0], debug1[1], 0xffff00ff);
+// 	DEBUG_DRAW_FUNC(debug0[0], debug0[1], 0xff0000ff);
+// 	DEBUG_DRAW_FUNC(debug1[0], debug1[1], 0xffff00ff);
 }
 
 /************************************************************************/
