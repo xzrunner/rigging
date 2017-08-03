@@ -100,6 +100,20 @@ struct rg_slot {
 
 /**
  *  @brief
+ *    todo: rg_ik
+ */
+
+struct rg_ik {
+	uint16_t joints[2];
+	uint16_t target;
+	uint16_t bend_positive;
+	float length[2];
+};
+
+#define SIZEOF_RG_IK (sizeof(struct rg_ik))
+
+/**
+ *  @brief
  *    todo: rg_skeleton_pose
  */
 
@@ -146,18 +160,22 @@ struct rg_skeleton {
 	int root;
 
 	int slot_count;
-	int skin_count;
+	uint16_t skin_count;
+	uint16_t ik_count;
 
 	struct rg_joint** joints;
 
 	struct rg_slot* slots;
 
+	struct rg_ik* iks;
+
 	struct rg_skin skins[1];
 };
 
-#define SIZEOF_RG_SKELETON (sizeof(struct rg_skeleton) - sizeof(struct rg_skin) + PTR_SIZE_DIFF * 2)
+#define SIZEOF_RG_SKELETON (sizeof(struct rg_skeleton) - sizeof(struct rg_skin) + PTR_SIZE_DIFF * 3)
 
-void rg_skeleton_init(void (*render_func)(void* sym, float* mat, const void* ud));
+void rg_skeleton_init(void (*render_func)(void* sym, float* mat, const void* ud),
+					  void (*debug_draw_func)(float x, float y, uint32_t color));
 
 void rg_skeleton_draw(const struct rg_skeleton*, const struct rg_skeleton_pose*, const struct rg_skeleton_skin*, const void* ud);
 

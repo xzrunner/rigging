@@ -6,6 +6,8 @@
 #include <assert.h>
 #include <stdbool.h>
 
+static const float PI = 3.1415926f;
+
 /************************************************************************/
 /* rg_pose_srt                                                          */
 /************************************************************************/
@@ -121,6 +123,65 @@ _update_joint(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, int j
 	}
 }
 
+static float
+_calc_world_angle(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, int joint_idx) {
+	const struct rg_joint* j = sk->joints[joint_idx];
+	if (j->parent != RG_JOINT_UNKNOWN) {
+		return _calc_world_angle(pose, sk, j->parent) + pose->poses[joint_idx].local.rot;
+	} else {
+		return pose->poses[joint_idx].local.rot;
+	}
+}
+
+static float debug0[2];
+static float debug1[2];
+
+static inline float
+_get_distance(const struct rg_pose_mat* w0, const struct rg_pose_mat* w1) {
+	float dx = w0->m[4] - w1->m[4];
+	float dy = w0->m[5] - w1->m[5];
+	return sqrt(dx * dx + dy * dy);
+}
+
+static inline float
+_get_angle(const struct rg_pose_mat* begin, const struct rg_pose_mat* end) {
+	return atan2(end->m[5] - begin->m[5], end->m[4] - begin->m[4]);
+}
+
+static void
+_update_ik(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk) {
+	for (int i = 0; i < sk->ik_count; ++i) {
+		const struct rg_ik* ik = &sk->iks[i];
+		int j1_id = ik->joints[0];
+		int j2_id = ik->joints[1];
+		const struct rg_joint* j1 = sk->joints[j1_id];
+		const struct rg_joint* j2 = sk->joints[j2_id];		
+		assert(j2->parent == j1_id);
+		const struct rg_pose_pair* target = &pose->poses[ik->target];
+		struct rg_pose_pair* j1_pos = &pose->poses[j1_id];
+ 		struct rg_pose_pair* j2_pos = &pose->poses[j2_id];			
+		float tot_len = _get_distance(&j1_pos->world, &target->world);
+		float ang = _get_angle(&j1_pos->world, &target->world);
+		if (tot_len > ik->length[0] + ik->length[1]) {
+			j1_pos->local.rot = ang - _calc_world_angle(pose, sk, j1->parent);
+			_update_joint(pose, sk, j1_id);
+			j2_pos->local.rot = ang - _calc_world_angle(pose, sk, j2->parent);
+			_update_joint(pose, sk, j2_id);
+		} else {
+			float ang_1 = acos((ik->length[0] * ik->length[0] + tot_len * tot_len - ik->length[1] * ik->length[1]) / (2 * ik->length[0] * tot_len));
+			float ang_2 = acos((ik->length[1] * ik->length[1] + tot_len * tot_len - ik->length[0] * ik->length[0]) / (2 * ik->length[1] * tot_len));
+			if (ik->bend_positive == 1) {
+				ang_1 = -ang_1;
+				ang_2 = -ang_2;
+			}
+			j1_pos->local.rot = ang + ang_1 - _calc_world_angle(pose, sk, j1->parent);
+			_update_joint(pose, sk, j1_id);
+			j2_pos->local.rot = ang - ang_2 - _calc_world_angle(pose, sk, j2->parent);
+			_update_joint(pose, sk, j2_id);
+		}
+	}
+}
+
 void 
 rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, struct rg_tl_joint** joints, int time) {
 	uint64_t dims_ptr = 0;
@@ -147,6 +208,8 @@ rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton*
 	rg_pose_mat_build(&root->world, &root->local);
 
 	_update_joint(pose, sk, sk->root);
+
+	_update_ik(pose, sk);
 }
 
 /************************************************************************/
@@ -159,8 +222,8 @@ static void (*UPDATE_MESH_FUNC)(void* sym, const struct rg_tl_deform_state*, con
 void 
 rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_skeleton_pose*),
 					  void (*update_mesh_func)(void* sym, const struct rg_tl_deform_state*, const float*)) {
-						  UPDATE_SKIN_FUNC = update_skin_func;
-						  UPDATE_MESH_FUNC = update_mesh_func;
+	UPDATE_SKIN_FUNC = update_skin_func;
+	UPDATE_MESH_FUNC = update_mesh_func;
 }
 
 void 
@@ -193,10 +256,13 @@ rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* s
 /************************************************************************/
 
 static void (*RENDER_FUNC)(void* sym, float* mat, const void* ud);
+static void (*DEBUG_DRAW_FUNC)(float x, float y, uint32_t color);
 
 void 
-rg_skeleton_init(void (*render_func)(void* sym, float* mat, const void* ud)) {
+rg_skeleton_init(void (*render_func)(void* sym, float* mat, const void* ud),
+				 void (*debug_draw_func)(float x, float y, uint32_t color)) {
 	RENDER_FUNC = render_func;
+	DEBUG_DRAW_FUNC = debug_draw_func;
 }
 
 void 
@@ -226,6 +292,9 @@ rg_skeleton_draw(const struct rg_skeleton* sk, const struct rg_skeleton_pose* po
 
 		RENDER_FUNC(skin->ud, world.m, ud);
 	}
+
+	DEBUG_DRAW_FUNC(debug0[0], debug0[1], 0xff0000ff);
+	DEBUG_DRAW_FUNC(debug1[0], debug1[1], 0xffff00ff);
 }
 
 /************************************************************************/
@@ -245,7 +314,6 @@ rg_timeline_init() {
 
 static inline float
 _format_angle(float angle) {
-	const float PI = 3.1415926f;
 	if (angle > PI) {
 		angle -= PI * 2;
 	}
