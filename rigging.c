@@ -14,7 +14,7 @@ static const float PI = 3.1415926f;
 
 static inline void
 _rotate_vector(float* src, float rad, float* dst) {
-	float s = sin(rad), c = cos(rad);
+	float s = sinf(rad), c = cosf(rad);
 	dst[0] = src[0] * c - src[1] * s;
 	dst[1] = src[0] * s + src[1] * c;
 }
@@ -55,7 +55,7 @@ rg_pose_mat_identity(struct rg_pose_mat* pose) {
 
 void
 _build(float* m, float x, float y, float angle, float sx, float sy) {
-	float c = cos(angle), s = sin(angle);
+	float c = cosf(angle), s = sinf(angle);
 
 	m[0] = c * sx;
 	m[1] = s * sx;
@@ -140,12 +140,12 @@ static inline float
 _get_distance(const struct rg_pose_mat* w0, const struct rg_pose_mat* w1) {
 	float dx = w0->m[4] - w1->m[4];
 	float dy = w0->m[5] - w1->m[5];
-	return sqrt(dx * dx + dy * dy);
+	return sqrtf(dx * dx + dy * dy);
 }
 
 static inline float
 _get_angle(const struct rg_pose_mat* begin, const struct rg_pose_mat* end) {
-	return atan2(end->m[5] - begin->m[5], end->m[4] - begin->m[4]);
+	return atan2f(end->m[5] - begin->m[5], end->m[4] - begin->m[4]);
 }
 
 static void
@@ -168,8 +168,8 @@ _update_ik(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk) {
 			j2_pos->local.rot = ang - _calc_world_angle(pose, sk, j2->parent);
 			_update_joint(pose, sk, j2_id);
 		} else {
-			float ang_1 = acos((ik->length[0] * ik->length[0] + tot_len * tot_len - ik->length[1] * ik->length[1]) / (2 * ik->length[0] * tot_len));
-			float ang_2 = acos((ik->length[1] * ik->length[1] + tot_len * tot_len - ik->length[0] * ik->length[0]) / (2 * ik->length[1] * tot_len));
+			float ang_1 = acosf((ik->length[0] * ik->length[0] + tot_len * tot_len - ik->length[1] * ik->length[1]) / (2 * ik->length[0] * tot_len));
+			float ang_2 = acosf((ik->length[1] * ik->length[1] + tot_len * tot_len - ik->length[0] * ik->length[0]) / (2 * ik->length[1] * tot_len));
 			if (ik->bend_positive == 1) {
 				ang_1 = -ang_1;
 				ang_2 = -ang_2;
