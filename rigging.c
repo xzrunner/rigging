@@ -183,7 +183,8 @@ _update_ik(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk) {
 }
 
 void 
-rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, struct rg_tl_joint** joints, int time) {
+rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, 
+	                    struct rg_tl_joint** joints, int time, const struct rg_curve* curves) {
 	uint64_t dims_ptr = 0;
 	for (int i = 0; i < sk->joint_count; ++i) {
 		struct rg_joint* joint = sk->joints[i];
@@ -192,7 +193,7 @@ rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton*
 			rg_pose_mat_identity(&pose->poses[i].world);
 
 			struct rg_tl_joint_state state;
-			rg_tl_query_joint(joints[i], time, &dims_ptr, &state);
+			rg_tl_query_joint(joints[i], time, &dims_ptr, &state, curves);
 
 			pose->poses[i].local.trans[0] = joint->local_pose.trans[0] + state.trans[0];
 			pose->poses[i].local.trans[1] = joint->local_pose.trans[1] + state.trans[1];
@@ -227,7 +228,8 @@ rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_skelet
 }
 
 void 
-rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose, struct rg_tl_skin** ts, struct rg_tl_deform** td, int time) {
+rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose, 
+	                    struct rg_tl_skin** ts, struct rg_tl_deform** td, int time, const struct rg_curve* curves) {
 	for (int i = 0; i < sk->slot_count; ++i) {
 		uint16_t skin = RG_SKIN_UNKNOWN;
 		if (ts[i] && ts[i]->skin_count != 0) {
@@ -244,7 +246,7 @@ rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* s
 			int type = sk->skins[skin].type;
 			if ((type == SKIN_MESH || type == SKIN_JOINT_MESH) && td[skin] && td[skin]->count > 0) {
 				struct rg_tl_deform_state deform_state;
-				const float* vertices = rg_tl_query_deform(td[skin], time, &deform_state);
+				const float* vertices = rg_tl_query_deform(td[skin], time, &deform_state, curves);
 				UPDATE_MESH_FUNC(sym, &deform_state, vertices);
 			}
 		}
@@ -328,8 +330,22 @@ _float_lerp(uint16_t time_begin, uint16_t time_end, float begin, float end, uint
 	return (time - time_begin) * (end - begin) / (time_end - time_begin) + begin;
 }
 
+static inline float
+_float_lerp_curve(uint16_t time_begin, uint16_t time_end, float begin, float end, uint16_t time, const struct rg_curve* curve) {	
+	float cy = 3.0f * (curve->y0);
+	float by = 3.0f * (curve->y1 - curve->y0) - cy;
+	float ay = 1 - cy - by;
+
+	float t = (float)(time - time_begin) / (time_end - time_begin);
+	float squared = t * t;
+	float cubed = squared * t;
+
+	float y = (ay * cubed) + (by * squared) + (cy * t);
+	return begin + (end - begin) * y;
+}
+
 static inline bool
-_query_joint(const struct rg_joint_sample* samples, int sample_count, int time, bool is_angle, uint8_t* ptr, float* ret) {
+_query_joint(const struct rg_curve* curves, const struct rg_joint_sample* samples, int sample_count, int time, bool is_angle, uint8_t* ptr, float* ret) {
 	assert(sample_count > 0);
 
 	if (time < samples[0].time) {
@@ -358,7 +374,13 @@ _query_joint(const struct rg_joint_sample* samples, int sample_count, int time, 
 				cd = c->data;
 				nd = n->data;
 			}
-			*ret = _float_lerp(c->time, n->time, cd, nd, time);
+
+			if (c->curve == 0xff) {
+				*ret = _float_lerp(c->time, n->time, cd, nd, time);
+			} else {
+				*ret = _float_lerp_curve(c->time, n->time, cd, nd, time, &curves[c->curve]);
+			}
+
 			return true;
 		} else {
 			++curr;
@@ -373,7 +395,8 @@ _query_joint(const struct rg_joint_sample* samples, int sample_count, int time, 
 }
 
 void 
-rg_tl_query_joint(const struct rg_tl_joint* joint, int time, uint64_t* dims_ptr, struct rg_tl_joint_state* state) {
+rg_tl_query_joint(const struct rg_tl_joint* joint, int time, uint64_t* dims_ptr, 
+	              struct rg_tl_joint_state* state, const struct rg_curve* curves) {
 	memset(state, 0, sizeof(*state));
 	state->scale[0] = state->scale[1] = 1;
 
@@ -382,49 +405,49 @@ rg_tl_query_joint(const struct rg_tl_joint* joint, int time, uint64_t* dims_ptr,
 	uint64_t new_dims_ptr = 0;
 	if (joint->type & DIM_FLAG_TRANS_X) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_TRANS_X], time, false, &dim_ptr, &state->trans[0]);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_TRANS_X], time, false, &dim_ptr, &state->trans[0]);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_TRANS_X];
 	}
 	if (joint->type & DIM_FLAG_TRANS_Y) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_TRANS_Y], time, false, &dim_ptr, &state->trans[1]);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_TRANS_Y], time, false, &dim_ptr, &state->trans[1]);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_TRANS_Y];
 	}
 	if (joint->type & DIM_FLAG_ROT) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_ROT], time, true, &dim_ptr, &state->rot);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_ROT], time, true, &dim_ptr, &state->rot);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_ROT];
 	}
 	if (joint->type & DIM_FLAG_SCALE_X) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SCALE_X], time, false, &dim_ptr, &state->scale[0]);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SCALE_X], time, false, &dim_ptr, &state->scale[0]);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_SCALE_X];
 	}
 	if (joint->type & DIM_FLAG_SCALE_Y) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SCALE_Y], time, false, &dim_ptr, &state->scale[1]);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SCALE_Y], time, false, &dim_ptr, &state->scale[1]);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_SCALE_Y];
 	}
 	if (joint->type & DIM_FLAG_SHEAR_X) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SHEAR_X], time, false, &dim_ptr, &state->shear[0]);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SHEAR_X], time, false, &dim_ptr, &state->shear[0]);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_SHEAR_X];
 	}
 	if (joint->type & DIM_FLAG_SHEAR_Y) {
 		uint8_t dim_ptr = (old_dims_ptr >> (ptr_dims * 8)) & 0xff;
-		_query_joint(&joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SHEAR_Y], time, false, &dim_ptr, &state->shear[1]);
+		_query_joint(curves, &joint->samples[ptr_sample], joint->dims_count[DIM_IDX_SHEAR_Y], time, false, &dim_ptr, &state->shear[1]);
 		new_dims_ptr = (new_dims_ptr << 8) & dim_ptr;
 		++ptr_dims;
 		ptr_sample += joint->dims_count[DIM_IDX_SHEAR_Y];
@@ -490,7 +513,7 @@ _query_deform(const struct rg_tl_deform* deform, int time, const struct rg_defor
 }
 
 const float* 
-rg_tl_query_deform(const struct rg_tl_deform* deform, int time, struct rg_tl_deform_state* state) {
+rg_tl_query_deform(const struct rg_tl_deform* deform, int time, struct rg_tl_deform_state* state, const struct rg_curve* curves) {
 	state->offset0 = 0;
 	state->count0  = 0;
 	state->offset1 = 0;
@@ -514,15 +537,29 @@ rg_tl_query_deform(const struct rg_tl_deform* deform, int time, struct rg_tl_def
 
 	int buf_ptr = 0;
 	if (curr && next) {
-		int ptr = 0;
-		for (int i = 0; i < curr->count; ++i) {
-			MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, curr->data[ptr++], 0, time);
-			MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, curr->data[ptr++], 0, time);
-		}
-		ptr = 0;
-		for (int i = 0; i < next->count; ++i) {
-			MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, 0, next->data[ptr++], time);
-			MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, 0, next->data[ptr++], time);
+		if (curr->curve == 0xffff) {
+			int ptr = 0;
+			for (int i = 0; i < curr->count; ++i) {
+				MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, curr->data[ptr++], 0, time);
+				MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, curr->data[ptr++], 0, time);
+			}
+			ptr = 0;
+			for (int i = 0; i < next->count; ++i) {
+				MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, 0, next->data[ptr++], time);
+				MESH_BUF[buf_ptr++] = _float_lerp(curr->time, next->time, 0, next->data[ptr++], time);
+			}
+		} else {
+			const struct rg_curve* curve = &curves[curr->curve];
+			int ptr = 0;
+			for (int i = 0; i < curr->count; ++i) {
+				MESH_BUF[buf_ptr++] = _float_lerp_curve(curr->time, next->time, curr->data[ptr++], 0, time, curve);
+				MESH_BUF[buf_ptr++] = _float_lerp_curve(curr->time, next->time, curr->data[ptr++], 0, time, curve);
+			}
+			ptr = 0;
+			for (int i = 0; i < next->count; ++i) {
+				MESH_BUF[buf_ptr++] = _float_lerp_curve(curr->time, next->time, 0, next->data[ptr++], time, curve);
+				MESH_BUF[buf_ptr++] = _float_lerp_curve(curr->time, next->time, 0, next->data[ptr++], time, curve);
+			}
 		}
 	} else if (curr) {
 		memcpy(MESH_BUF, curr->data, curr->count * 2);

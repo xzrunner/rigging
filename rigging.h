@@ -130,7 +130,7 @@ struct rg_skeleton_pose {
 
 struct rg_tl_joint;
 
-void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, struct rg_tl_joint**, int time);
+void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, struct rg_tl_joint**, int time, const struct rg_curve*);
 
 /**
  *  @brief
@@ -148,7 +148,7 @@ void rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_s
 						   void (*update_mesh_func)(void* sym, const struct rg_tl_deform_state*, const float*));
 struct rg_tl_skin;
 struct rg_tl_deform;
-void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, struct rg_tl_skin**, struct rg_tl_deform**, int time);
+void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, struct rg_tl_skin**, struct rg_tl_deform**, int time, const struct rg_curve*);
 
 /**
  *  @brief
@@ -214,7 +214,7 @@ enum INTERPOLATION {
 struct rg_joint_sample {
 	uint16_t time;
 	uint8_t	 lerp;
-	uint8_t  padding;
+	uint8_t  curve;
 	float	 data;
 };
 
@@ -259,7 +259,7 @@ struct rg_deform_sample {
 	uint16_t time;
 	uint16_t offset;
 	uint16_t count;
-	uint16_t padding;
+	uint16_t curve;
 	float*   data;
 };
 
@@ -281,16 +281,23 @@ struct rg_timeline {
 
 void rg_timeline_init();
 
-void rg_tl_query_joint(const struct rg_tl_joint*, int time, uint64_t* dims_ptr, struct rg_tl_joint_state*);
+void rg_tl_query_joint(const struct rg_tl_joint*, int time, uint64_t* dims_ptr, struct rg_tl_joint_state*, const struct rg_curve*);
 
 uint16_t rg_tl_query_skin(const struct rg_tl_skin*, int time);
 
-const float* rg_tl_query_deform(const struct rg_tl_deform*, int time, struct rg_tl_deform_state*);
+const float* rg_tl_query_deform(const struct rg_tl_deform*, int time, struct rg_tl_deform_state*, const struct rg_curve*);
 
 /**
  *  @brief
  *    todo: rg_animation
  */
+
+struct rg_curve {
+	float x0, y0;
+	float x1, y1;
+};
+
+#define SIZEOF_RG_CURVE (sizeof(struct rg_curve))
 
 struct rg_animation {
 	struct rg_skeleton* sk;
@@ -299,10 +306,11 @@ struct rg_animation {
 
 	int max_frame;
 
-	uint32_t padding;
+	int curve_count;
+	struct rg_curve curves[1];
 };
 
-#define SIZEOF_RG_ANIM (sizeof(struct rg_animation) + PTR_SIZE_DIFF * 4)
+#define SIZEOF_RG_ANIM (sizeof(struct rg_animation) + PTR_SIZE_DIFF * 4 - sizeof(struct rg_curve))
 
 #endif // rigging_h
 
