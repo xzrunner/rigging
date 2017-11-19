@@ -258,8 +258,8 @@ struct rg_tl_deform_state {
 struct rg_deform_sample {
 	uint16_t time;
 	uint16_t offset;
-	uint16_t count;
 	uint16_t curve;
+	uint16_t count;
 	float*   data;
 };
 
