@@ -130,7 +130,7 @@ struct rg_skeleton_pose {
 
 struct rg_tl_joint;
 
-void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, struct rg_tl_joint**, int time, const struct rg_curve*);
+void rg_skeleton_pose_update(struct rg_skeleton_pose*, const struct rg_skeleton*, struct rg_tl_joint**, int time, struct rg_curve** const);
 
 /**
  *  @brief
@@ -148,7 +148,7 @@ void rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_s
 						   void (*update_mesh_func)(void* sym, const struct rg_tl_deform_state*, const float*));
 struct rg_tl_skin;
 struct rg_tl_deform;
-void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, struct rg_tl_skin**, struct rg_tl_deform**, int time, const struct rg_curve*);
+void rg_skeleton_skin_update(struct rg_skeleton_skin*, const struct rg_skeleton*, const struct rg_skeleton_pose*, struct rg_tl_skin**, struct rg_tl_deform**, int time, struct rg_curve** const);
 
 /**
  *  @brief
@@ -258,7 +258,8 @@ struct rg_tl_deform_state {
 struct rg_deform_sample {
 	uint16_t time;
 	uint16_t offset;
-	uint16_t curve;
+	uint8_t  curve;
+	uint8_t  padding;
 	uint16_t count;
 	float*   data;
 };
@@ -281,11 +282,11 @@ struct rg_timeline {
 
 void rg_timeline_init();
 
-void rg_tl_query_joint(const struct rg_tl_joint*, int time, uint64_t* dims_ptr, struct rg_tl_joint_state*, const struct rg_curve*);
+void rg_tl_query_joint(const struct rg_tl_joint*, int time, uint64_t* dims_ptr, struct rg_tl_joint_state*, struct rg_curve** const);
 
 uint16_t rg_tl_query_skin(const struct rg_tl_skin*, int time);
 
-const float* rg_tl_query_deform(const struct rg_tl_deform*, int time, struct rg_tl_deform_state*, const struct rg_curve*);
+const float* rg_tl_query_deform(const struct rg_tl_deform*, int time, struct rg_tl_deform_state*, struct rg_curve** const);
 
 /**
  *  @brief
@@ -307,10 +308,10 @@ struct rg_animation {
 	int max_frame;
 
 	int curve_count;
-	struct rg_curve curves[1];
+	struct rg_curve** curves;
 };
 
-#define SIZEOF_RG_ANIM (sizeof(struct rg_animation) + PTR_SIZE_DIFF * 4 - sizeof(struct rg_curve))
+#define SIZEOF_RG_ANIM (sizeof(struct rg_animation) + PTR_SIZE_DIFF * 5)
 
 #endif // rigging_h
 
