@@ -19,7 +19,7 @@ _rotate_vector(float* src, float rad, float* dst) {
 	dst[1] = src[0] * s + src[1] * c;
 }
 
-void 
+void
 rg_pose_srt_identity(struct rg_pose_srt* pos) {
 	pos->trans[0] = 0;
 	pos->trans[1] = 0;
@@ -47,7 +47,7 @@ rg_local2world(const struct rg_pose_srt* src, const struct rg_pose_srt* local, s
 /* rg_pose_mat                                                          */
 /************************************************************************/
 
-void 
+void
 rg_pose_mat_identity(struct rg_pose_mat* pose) {
 	memset(pose->m, 0, sizeof(float) * 6);
 	pose->m[0] = pose->m[3] = 1;
@@ -65,7 +65,7 @@ _build(float* m, float x, float y, float angle, float sx, float sy) {
 	m[5] = y;
 }
 
-void 
+void
 rg_pose_mat_build(struct rg_pose_mat* dst, const struct rg_pose_srt* src) {
 	_build(dst->m, src->trans[0], src->trans[1], src->rot, src->scale[0], src->scale[1]);
 }
@@ -80,7 +80,7 @@ _mul(float* m, const float* m1, const float* m2) {
 	m[5] = m1[4] * m2[1] + m1[5] * m2[3] + m2[5];
 }
 
-void 
+void
 rg_local2worldmat(const struct rg_pose_mat* src, const struct rg_pose_srt* local, struct rg_pose_mat* dst) {
 	float m[6];
 	_build(m, local->trans[0], local->trans[1], local->rot, local->scale[0], local->scale[1]);
@@ -92,7 +92,7 @@ rg_local2worldmat(const struct rg_pose_mat* src, const struct rg_pose_srt* local
 /* rg_joint                                                             */
 /************************************************************************/
 
-void 
+void
 rg_joint_update(struct rg_joint* joint, struct rg_skeleton* sk) {
 	if (joint->parent != RG_JOINT_UNKNOWN) {
 		assert(joint->parent < sk->joint_count);
@@ -110,7 +110,7 @@ rg_joint_update(struct rg_joint* joint, struct rg_skeleton* sk) {
 /* rg_skeleton_pose                                                     */
 /************************************************************************/
 
-static void 
+static void
 _update_joint(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, int joint_idx) {
 	assert(joint_idx >= 0 && joint_idx < sk->joint_count);
 	struct rg_joint* joint = sk->joints[joint_idx];
@@ -155,11 +155,11 @@ _update_ik(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk) {
 		int j1_id = ik->joints[0];
 		int j2_id = ik->joints[1];
 		const struct rg_joint* j1 = sk->joints[j1_id];
-		const struct rg_joint* j2 = sk->joints[j2_id];		
+		const struct rg_joint* j2 = sk->joints[j2_id];
 		assert(j2->parent == j1_id);
 		const struct rg_pose_pair* target = &pose->poses[ik->target];
 		struct rg_pose_pair* j1_pos = &pose->poses[j1_id];
- 		struct rg_pose_pair* j2_pos = &pose->poses[j2_id];			
+ 		struct rg_pose_pair* j2_pos = &pose->poses[j2_id];
 		float tot_len = _get_distance(&j1_pos->world, &target->world);
 		float ang = _get_angle(&j1_pos->world, &target->world);
 		if (tot_len > ik->length[0] + ik->length[1]) {
@@ -182,8 +182,8 @@ _update_ik(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk) {
 	}
 }
 
-void 
-rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk, 
+void
+rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton* sk,
 	                    struct rg_tl_joint** joints, int time, struct rg_curve** const curves) {
 	uint64_t dims_ptr = 0;
 	for (int i = 0; i < sk->joint_count; ++i) {
@@ -220,15 +220,15 @@ rg_skeleton_pose_update(struct rg_skeleton_pose* pose, const struct rg_skeleton*
 static void (*UPDATE_SKIN_FUNC)(void* sym, const struct rg_skeleton_pose*);
 static void (*UPDATE_MESH_FUNC)(void* sym, const struct rg_tl_deform_state*, const float*);
 
-void 
+void
 rg_skeleton_skin_init(void (*update_skin_func)(void* sym, const struct rg_skeleton_pose*),
 					  void (*update_mesh_func)(void* sym, const struct rg_tl_deform_state*, const float*)) {
 	UPDATE_SKIN_FUNC = update_skin_func;
 	UPDATE_MESH_FUNC = update_mesh_func;
 }
 
-void 
-rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose, 
+void
+rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* sk, const struct rg_skeleton_pose* sk_pose,
 	                    struct rg_tl_skin** ts, struct rg_tl_deform** td, int time, struct rg_curve** const curves) {
 	for (int i = 0; i < sk->slot_count; ++i) {
 		uint16_t skin = RG_SKIN_UNKNOWN;
@@ -260,21 +260,21 @@ rg_skeleton_skin_update(struct rg_skeleton_skin* ss, const struct rg_skeleton* s
 static void (*RENDER_FUNC)(void* sym, float* mat, const void* ud);
 static void (*DEBUG_DRAW_FUNC)(float x, float y, uint32_t color);
 
-void 
+void
 rg_skeleton_init(void (*render_func)(void* sym, float* mat, const void* ud),
 				 void (*debug_draw_func)(float x, float y, uint32_t color)) {
 	RENDER_FUNC = render_func;
 	DEBUG_DRAW_FUNC = debug_draw_func;
 }
 
-void 
+void
 rg_skeleton_draw(const struct rg_skeleton* sk, const struct rg_skeleton_pose* pose, const struct rg_skeleton_skin* ss, const void* ud) {
 	for (int i = 0; i < sk->slot_count; ++i) {
 		const struct rg_slot* slot = &sk->slots[i];
 		uint16_t skin_idx = RG_SKIN_UNKNOWN;
 		if (ss->skins[i]) {
 			skin_idx = ss->skins[i];
-		} 
+		}
 		if (skin_idx == RG_SKIN_UNKNOWN) {
 			skin_idx = slot->skin;
 		}
@@ -307,7 +307,7 @@ rg_skeleton_draw(const struct rg_skeleton* sk, const struct rg_skeleton_pose* po
 
 static float* MESH_BUF = NULL;
 
-void 
+void
 rg_timeline_init() {
 	int sz = sizeof(float) * MESH_BUF_SIZE;
 	MESH_BUF = malloc(sz);
@@ -394,8 +394,8 @@ _query_joint(struct rg_curve** const curves, const struct rg_joint_sample* sampl
 	return false;
 }
 
-void 
-rg_tl_query_joint(const struct rg_tl_joint* joint, int time, uint64_t* dims_ptr, 
+void
+rg_tl_query_joint(const struct rg_tl_joint* joint, int time, uint64_t* dims_ptr,
 	              struct rg_tl_joint_state* state, struct rg_curve** const curves) {
 	memset(state, 0, sizeof(*state));
 	state->scale[0] = state->scale[1] = 1;
@@ -455,7 +455,7 @@ rg_tl_query_joint(const struct rg_tl_joint* joint, int time, uint64_t* dims_ptr,
 	*dims_ptr = new_dims_ptr;
 }
 
-uint16_t 
+uint16_t
 rg_tl_query_skin(const struct rg_tl_skin* skin, int time) {
 	assert(skin && skin->skins && skin->skin_count > 0);
 
@@ -483,7 +483,7 @@ rg_tl_query_skin(const struct rg_tl_skin* skin, int time) {
 	return RG_SKIN_UNKNOWN;
 }
 
-static void 
+static void
 _query_deform(const struct rg_tl_deform* deform, int time, const struct rg_deform_sample** curr, const struct rg_deform_sample** next) {
 	*curr = NULL;
 	*next = NULL;
@@ -512,7 +512,7 @@ _query_deform(const struct rg_tl_deform* deform, int time, const struct rg_defor
 	}
 }
 
-const float* 
+const float*
 rg_tl_query_deform(const struct rg_tl_deform* deform, int time, struct rg_tl_deform_state* state, struct rg_curve** const curves) {
 	state->offset0 = 0;
 	state->count0  = 0;
