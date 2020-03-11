@@ -533,7 +533,7 @@ rg_tl_query_deform(const struct rg_tl_deform* deform, int time, struct rg_tl_def
 	if (next) {
 		count += next->count;
 	}
-	assert(count < MESH_BUF_SIZE * 2);
+	assert(count * 2 < MESH_BUF_SIZE);
 
 	int buf_ptr = 0;
 	if (curr && next) {
